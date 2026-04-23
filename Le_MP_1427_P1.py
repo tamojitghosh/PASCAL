@@ -13,54 +13,53 @@ green_signal = 1 # Green signal code in Aimsun API
 red_signal = 0 # Red signal code in Aimsun API
 amber_signal = 2 # Amber signal code in Aimsun API
 junction_id = 1427
-eta = 2.5
-cycle_time = 100  #This is the total green time and does not include the all red and amber
-min_green = 15
+eta = 2
+cycle_time = 120   #This is the total green time and does not include the all red and amber
+min_green = 20
 phase_pool = []
 signal_group_pool = []
 green_duration_phase = []
 section_upstream_dict = {
-    552: [658],
+    552: [658],   #509, 647,
     789: [1116],
     786: [1064],
-    572: [988],
-    471: [3741],
-    523: [3747],
+    572: [988],     #UP TO THIS CENTER INTERSECTION
+    471: [2285],
+    523: [574],
     516: [547],
-    499: [539],
+    499: [539],     #UP TO THIS SOUTHSIDE INTERSECTION
     1405: [1483],
     1422: [1461],
     1409: [1408],
-    1415: [1401],
+    1415: [1401],   #UP TO THIS NORTHSIDE INTERSECTION
     419: [437],
     979: [879],
-    772: [3750],
+    772: [3750],     #UP TO THIS EASTSIDE INTERSECTION
     1084: [626],
     1140: [2294],
     1107: [1120],
-    1102: [766]
+    1102: [766]     #uP TO THIS WESTSIDE INTERSECTION
 }
-
 section_downstream_dict = {
     778: [769],
     774: [557],
-    780: [3750],
-    776: [766],
+    780: [772],
+    776: [766],     #UP TO THIS CENTER INTERSECTION
     511: [509],
     502: [1644],
     2288: [517],
-    2291: [513],
+    2291: [513],    #UP TO THIS SOUTHSIDE INTERSECTION
     1432: [1402],
     1428: [1446],
     1430: [1443],
-    1436: [1449],
+    1436: [1449],   #UP TO NORTHSIDE INTERSECTION
     2297: [1529],
-    990: [2536],
-    431: [2300],
+    990: [988],
+    431: [2300],    #UP TO EASTSIDE INTERSECTION
     2303: [1143],
     1091: [614],
     1064: [786],
-    1092: [1137]
+    1092: [1137]    #UP TO WESTSIDE INTERSECTION
 }
 # Calling active model using scripting and later on it will be used to get the lane length
 model = GKSystem.getSystem().getActiveModel()
@@ -259,8 +258,8 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
                         if lane_vehicle_count_to_section.get(0) == 0 and lane_vehicle_count_to_split_downstream_section.get(0) == 0:
                             sum_vehicles_destination = 0
                         else:
-                            sum_veh_dest_signal_section = sum(lane_vehicle_count_to_section.values()) #sum(lane_vehicle_count_to_section.get(lane, 0) for lane in lane_nums_turn_dest_sec)
-                            sum_veh_dest_split_downstream_section = sum(lane_vehicle_count_to_split_downstream_section.values()) #sum(lane_vehicle_count_to_split_downstream_section.get(lane, 0) for lane in lane_nums_turn_dest_sec)
+                            sum_veh_dest_signal_section = sum(lane_vehicle_count_to_section.get(lane, 0) for lane in lane_nums_turn_dest_sec)
+                            sum_veh_dest_split_downstream_section = sum(lane_vehicle_count_to_split_downstream_section.get(lane, 0) for lane in lane_nums_turn_dest_sec)
                             sum_vehicles_destination = sum_veh_dest_signal_section + sum_veh_dest_split_downstream_section
 
                         AKIPrintString(f'Sum of vehicles for signal group {signal_group} in origin: {sum_vehicles_origin}')
@@ -302,7 +301,7 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
                     phase_pool.append(signal_group_pool)
                     AKIPrintString(f"PHASE POOL = {phase_pool}")
 
-            pressure_exp_value = [np.exp(np.clip(eta * phase_pressure, -700, 700)) for phase_pressure in pressure_phase_list]
+            pressure_exp_value = [math.exp(eta * phase_pressure) for phase_pressure in pressure_phase_list]
             sum_exp_value = sum(pressure_exp_value)
             AKIPrintString(f"SUM PRESSURE = {sum_exp_value}")
 

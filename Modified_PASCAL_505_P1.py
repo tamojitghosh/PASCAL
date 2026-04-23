@@ -8,7 +8,7 @@ import math
 ##############################################################################
 # GLOBAL VARIABLES FOR STATE MACHINE
 ##############################################################################
-time_step = 1     # minimum green time before re-selecting
+time_step = 5     # minimum green time before re-selecting
 amber_time = 2
 all_red_time = 2
 space_headway_jam = 6.5 #in meters to find out how many vehicles can be accommodated in one lane
@@ -183,21 +183,10 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
         # see if we want to pick new movements
         if time_in_state >= time_step:
             next_green_set = pick_new_green_set(time1, timeSta, acycle)
-            #AKIPrintString(f"Next green set: {next_green_set}")
-
-            current_green_set.clear()
-            num_signal_groups = ECIGetNumberSignalGroups(junction_id)
-            for i in range(1, num_signal_groups + 1):
-                state_sg = ECIGetCurrentStateofSignalGroup(junction_id, i)
-                if state_sg == 1:
-                    current_green_set.add(i)
-            #AKIPrintString(f"Current green set: {current_green_set}")
 
             # Find which movements are continuing vs turning off
             continuing = current_green_set.intersection(next_green_set)
-            #AKIPrintString(f"Continuing movements: {continuing}")
             movements_to_turn_off = current_green_set - continuing
-            #AKIPrintString(f"Turning off movements: {movements_to_turn_off}")
 
             if len(movements_to_turn_off) == 0:
                 # If there's no difference, we keep the same set => just reset timer
@@ -226,8 +215,8 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
         if time_in_state >= all_red_time:
             finalize_new_green_set(next_green_set, timeSta, time1, acycle)
             # old movements_to_turn_off are now red, continuing remain green
-            # current_green_set.clear()
-            # current_green_set.update(next_green_set)  # the next set is now official
+            current_green_set.clear()
+            current_green_set.update(next_green_set)  # the next set is now official
             movements_to_turn_off.clear()
             signal_state = "GREEN"
             time_in_state = 0
@@ -263,10 +252,10 @@ def pick_new_green_set(time1, timeSta, acycle):
     # We'll create a local set that will store the new movements we want green:
     new_green = set()
 
-    #AKIPrintString("========== PICKING A NEW GREEN SET ==========")
+    AKIPrintString("========== PICKING A NEW GREEN SET ==========")
 
     if not selection_pool:
-        ##AKIPrintString(f"JUNCTION ID = {junction_id}")
+        AKIPrintString(f"JUNCTION ID = {junction_id}")
         signal_group_veh_diff = {}
         signal_group_name = {}
         origin_veh_num = {}
@@ -276,7 +265,7 @@ def pick_new_green_set(time1, timeSta, acycle):
 
         num_signal_groups = ECIGetNumberSignalGroups(junction_id)
         for signal_group in range(1, num_signal_groups + 1):
-            ##AKIPrintString(f"Signal group number = {signal_group}")
+            AKIPrintString(f"Signal group number = {signal_group}")
             # Read the number of turnings for the signal group
             num_turnings = ECIGetNumberTurningsofSignalGroup(junction_id, signal_group)
 
@@ -310,7 +299,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                                     lane_vehicle_count_from_split_upstream_section[lane] = 0
                         else:
                             lane_vehicle_count_from_split_upstream_section = {0: 0}
-                        ##AKIPrintString(f"Lane Vehicle Count from Split Upstream Section Dictionary: {lane_vehicle_count_from_split_upstream_section}")
+                        AKIPrintString(f"Lane Vehicle Count from Split Upstream Section Dictionary: {lane_vehicle_count_from_split_upstream_section}")
 
                     ## COUNT NUMBER OF VEHICLES IN JUST UPSTREAM LANES OF THE SIGNAL
                     num_veh_from_section = AKIVehStateGetNbVehiclesSection(fromSection.value(), True) #Section which is connected to the signal
@@ -329,7 +318,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                                 lane_vehicle_count_from_section[number_lane_from_section] = 1
                     else:
                         lane_vehicle_count_from_section = {0: 0}
-                    ##AKIPrintString(f"Lane Vehicle Count from Signal Upstream Section Dictionary: {lane_vehicle_count_from_section}")
+                    AKIPrintString(f"Lane Vehicle Count from Signal Upstream Section Dictionary: {lane_vehicle_count_from_section}")
 
                     ## COUNT NUMBER OF VEHICLES IN JUST DOWNSTREAM LANES OF THE SIGNAL
                     num_veh_to_section = AKIVehStateGetNbVehiclesSection(toSection.value(), True) #Section which is connected to the signal in downstream
@@ -348,7 +337,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                                 lane_vehicle_count_to_section[number_lane_to_section] = 1
                     else:
                         lane_vehicle_count_to_section = {0: 0}
-                    ##AKIPrintString(f"Lane Vehicle Count from Signal Downstream Section Dictionary: {lane_vehicle_count_to_section}")
+                    AKIPrintString(f"Lane Vehicle Count from Signal Downstream Section Dictionary: {lane_vehicle_count_to_section}")
 
                     ## COUNT NUMBER OF VEHICLES IN DOWNSTREAM OF JUST DOWNSTREAM LANES OF THE SIGNAL
                     for downstream_split_section_id in section_downstream_dict[toSection.value()]:
@@ -372,7 +361,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                                     lane_vehicle_count_to_split_downstream_section[lane] = 0
                         else:
                             lane_vehicle_count_to_split_downstream_section = {0: 0}
-                    ##AKIPrintString(f"Lane Vehicle Count from Split Downstream Section Dictionary: {lane_vehicle_count_to_split_downstream_section}")
+                    AKIPrintString(f"Lane Vehicle Count from Split Downstream Section Dictionary: {lane_vehicle_count_to_split_downstream_section}")
 
                     first_lane_turn_origin = AKIInfNetGetTurningOriginFromLane(fromSection.value(), toSection.value())
                     last_lane_turn_origin = AKIInfNetGetTurningOriginToLane(fromSection.value(), toSection.value())
@@ -386,13 +375,13 @@ def pick_new_green_set(time1, timeSta, acycle):
                         lane_nums_turn_origin_sec.append(first_lane_turn_origin)
                     else:
                         lane_nums_turn_origin_sec = list(range(first_lane_turn_origin, last_lane_turn_origin+1))
-                    ###AKIPrintString(f'Lane numbers for this turn in origin: {lane_nums_turn_origin_sec}')
+                    #AKIPrintString(f'Lane numbers for this turn in origin: {lane_nums_turn_origin_sec}')
 
                     if first_lane_turn_destination == last_lane_turn_destination:
                         lane_nums_turn_dest_sec.append(first_lane_turn_destination)
                     else:
                         lane_nums_turn_dest_sec = list(range(first_lane_turn_destination, last_lane_turn_destination+1))
-                    ###AKIPrintString(f'Lane numbers for this turn in destination: {lane_nums_turn_dest_sec}')
+                    #AKIPrintString(f'Lane numbers for this turn in destination: {lane_nums_turn_dest_sec}')
 
                     # Sum the number of vehicles for each signal group in origin and destination sections
                     if lane_vehicle_count_from_section.get(0) == 0 and lane_vehicle_count_from_split_upstream_section.get(0) == 0:
@@ -409,8 +398,8 @@ def pick_new_green_set(time1, timeSta, acycle):
                         sum_veh_dest_split_downstream_section = sum(lane_vehicle_count_to_split_downstream_section.values()) #sum(lane_vehicle_count_to_split_downstream_section.get(lane, 0) for lane in lane_nums_turn_dest_sec)
                         sum_vehicles_destination = sum_veh_dest_signal_section + sum_veh_dest_split_downstream_section
 
-                    ##AKIPrintString(f'Sum of vehicles for signal group {signal_group} in origin: {sum_vehicles_origin}')
-                    ##AKIPrintString(f'Sum of vehicles for signal group {signal_group} in destination: {sum_vehicles_destination}')
+                    AKIPrintString(f'Sum of vehicles for signal group {signal_group} in origin: {sum_vehicles_origin}')
+                    AKIPrintString(f'Sum of vehicles for signal group {signal_group} in destination: {sum_vehicles_destination}')
 
                     # First assign section information to a variable using section id
                     from_section = model.getCatalog().find(fromSection.value())
@@ -436,7 +425,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                     section_info = AKIInfNetGetSectionANGInf(fromSection.value())
                     central_lane_length = section_info.length
                     from_section_lane_lengths = [central_lane_length if x==0 else x for x in from_section_lane_lengths]
-                    ##AKIPrintString(f"FROM SECTION LANE LENGTHS = {from_section_lane_lengths}")
+                    AKIPrintString(f"FROM SECTION LANE LENGTHS = {from_section_lane_lengths}")
                     
                     ## Now get the lane lengths for the split upstream lane
                     for lane in lanes_from_split_upstream:
@@ -447,7 +436,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                     split_upstream_section_lane_lengths = [split_section_central_lane_length if x==0 else x for x in split_upstream_section_lane_lengths]
                     while len(split_upstream_section_lane_lengths) < len(from_section_lane_lengths):
                         split_upstream_section_lane_lengths.append(0)
-                    ##AKIPrintString(f"SPLIT UPSTREAM LANE LENGTHS = {split_upstream_section_lane_lengths}")
+                    AKIPrintString(f"SPLIT UPSTREAM LANE LENGTHS = {split_upstream_section_lane_lengths}")
                     sum_origin_section_lengths = [from_section_lane_lengths[i] + split_upstream_section_lane_lengths[i] for i in range(len(from_section_lane_lengths))]
 
                     ## Get the lane lengths for downstream section
@@ -457,7 +446,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                     to_section_info = AKIInfNetGetSectionANGInf(toSection.value())
                     to_section_central_lane_length = to_section_info.length
                     to_section_lane_lengths = [to_section_central_lane_length if x==0 else x for x in to_section_lane_lengths]
-                    ##AKIPrintString(f"TO SECTION LANE LENGTHS = {to_section_lane_lengths}")
+                    AKIPrintString(f"TO SECTION LANE LENGTHS = {to_section_lane_lengths}")
 
                     ## Get the lane lengths for split downstream section
                     for lane in lanes_from_split_downstream:
@@ -468,19 +457,44 @@ def pick_new_green_set(time1, timeSta, acycle):
                     split_downstream_section_lane_lengths = [downstream_split_section_central_lane_length if x==0 else x for x in split_downstream_section_lane_lengths]
                     while len(split_downstream_section_lane_lengths) < len(to_section_lane_lengths):
                         split_downstream_section_lane_lengths.append(0)
-                    ##AKIPrintString(f"SPLIT DOWNSTREAM LANE LENGTHS = {split_downstream_section_lane_lengths}")
+                    AKIPrintString(f"SPLIT DOWNSTREAM LANE LENGTHS = {split_downstream_section_lane_lengths}")
                     sum_dest_section_lengths = [to_section_lane_lengths[i] + split_downstream_section_lane_lengths[i] for i in range(len(to_section_lane_lengths))]
 
                     turn_lane_length_origin = [sum_origin_section_lengths[k - 1] for k in lane_nums_turn_origin_sec]
-                    ##AKIPrintString(f"TURN LANE LENGTHS ORIGIN= {turn_lane_length_origin}")
+                    AKIPrintString(f"TURN LANE LENGTHS ORIGIN= {turn_lane_length_origin}")
                     origin_lane_cap = sum(turn_lane_length_origin)/space_headway_jam
 
                     turn_lane_length_dest = sum(to_section_lane_lengths) + sum(split_downstream_section_lane_lengths) #sum_dest_section_lengths #[sum_dest_section_lengths[k - 1] for k in lane_nums_turn_dest_sec] ## For downstream entire section length is considered as we do not know where the vehicles will go
-                    ##AKIPrintString(f"TURN LANE LENGTHS DESTINATION= {turn_lane_length_dest}")
+                    AKIPrintString(f"TURN LANE LENGTHS DESTINATION= {turn_lane_length_dest}")
                     dest_lane_cap = turn_lane_length_dest/ space_headway_jam
 
-                    #PASCAL Pressure Calculation
-                    veh_num_diff = (sum_vehicles_origin/ origin_lane_cap) * (1 - (sum_vehicles_destination/ dest_lane_cap)) #* len(lane_nums_turn_origin_sec)
+                    # if all(length == 0 for length in turn_lane_length_origin):
+                    #     section_info = AKIInfNetGetSectionANGInf(fromSection.value())
+                    #     origin_lane_length = section_info.length
+                    # else:
+                    #     origin_lane_length = turn_lane_length_origin[0]
+
+                    # AKIPrintString(f"ORIGIN LANE LENGTH = {origin_lane_length}")
+
+                    #origin_lane_cap = origin_lane_length/ space_headway_jam #* len(lane_nums_turn_origin_sec)
+
+                    # if all(length == 0 for length in turn_lane_length_dest):
+                    #     section_info = AKIInfNetGetSectionANGInf(toSection.value())
+                    #     dest_lane_length = section_info.length
+                    # else:
+                    #     dest_lane_length = turn_lane_length_origin[0]
+
+                    #dest_lane_cap = dest_lane_length/ space_headway_jam * len(lane_nums_turn_dest_sec)
+
+                    #AKIPrintString(f'Destination lane capacity: {dest_lane_cap}')
+
+                    # PASCAL
+                    veh_num_diff = sum_vehicles_origin * (sum_vehicles_origin/ origin_lane_cap) * (1 - (sum_vehicles_destination/ dest_lane_cap)) #* len(lane_nums_turn_origin_sec)
+
+                    #FASCAL
+                    #veh_num_diff = (math.exp(sum_vehicles_origin/ origin_lane_cap) * (sum_vehicles_origin/ origin_lane_cap) - (sum_vehicles_destination/ dest_lane_cap)) * (1 - (sum_vehicles_destination/ dest_lane_cap))
+
+                    AKIPrintString(f'QUEUE LENGTH TO CAPACITY = {veh_num_diff}')
 
                     signal_group_veh_diff[signal_group] = veh_num_diff
                     signal_group_name[signal_group] = sg_name
@@ -503,9 +517,9 @@ def pick_new_green_set(time1, timeSta, acycle):
         all_signal_groups = list(criteria_values_signal_group_name.keys())
         red_signal_groups = [sg for sg in all_signal_groups
                              if sg != critical_signal_group and sg not in best_compli_combi]
-        #AKIPrintString(f'Critical signal group is: {critical_signal_group}')
-        #AKIPrintString(f'Final complimentary signal groups: {best_compli_combi}')
-        #AKIPrintString(f'Red signal groups: {red_signal_groups}')
+        AKIPrintString(f'Critical signal group is: {critical_signal_group}')
+        AKIPrintString(f'Final complimentary signal groups: {best_compli_combi}')
+        AKIPrintString(f'Red signal groups: {red_signal_groups}')
 
         # Convert critical + best_compli into their numeric IDs
         critical_signal_group_num = [k for k, v in signal_group_name.items()
@@ -519,13 +533,6 @@ def pick_new_green_set(time1, timeSta, acycle):
         new_green.update(critical_signal_group_num)
         new_green.update(best_compli_combi_num)
 
-        # current_green_set.clear()
-        # num_signal_groups = ECIGetNumberSignalGroups(junction_id)
-        # for i in range(1, num_signal_groups + 1):
-        #     state_sg = ECIGetCurrentStateofSignalGroup(junction_id, i)
-        #     if state_sg == 1:
-        #         current_green_set.add(i)
-
         # Also, we figure out the updated time_step (like your original code).
         # This also remains the same logic, but we do not forcibly do amber/red.
         # ...
@@ -537,11 +544,11 @@ def pick_new_green_set(time1, timeSta, acycle):
         if new_ts < min_green:
             new_ts = min_green
         time_step = new_ts
-        #AKIPrintString(f'NEW TIME STEP = {time_step}')
+        AKIPrintString(f'NEW TIME STEP = {time_step}')
 
         # We also set selection_pool
         selection_pool = red_signal_groups_num
-        #AKIPrintString(f'UPDATED SELECTION POOL = {selection_pool}')
+        AKIPrintString(f'UPDATED SELECTION POOL = {selection_pool}')
 
     else:
         signal_group_veh_diff = {}
@@ -553,7 +560,7 @@ def pick_new_green_set(time1, timeSta, acycle):
 
         num_signal_groups = ECIGetNumberSignalGroups(junction_id)
         for signal_group in range(1, num_signal_groups + 1):
-            ##AKIPrintString(f"Signal group number = {signal_group}")
+            AKIPrintString(f"Signal group number = {signal_group}")
             # Read the number of turnings for the signal group
             num_turnings = ECIGetNumberTurningsofSignalGroup(junction_id, signal_group)
 
@@ -587,7 +594,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                                     lane_vehicle_count_from_split_upstream_section[lane] = 0
                         else:
                             lane_vehicle_count_from_split_upstream_section = {0: 0}
-                        ##AKIPrintString(f"Lane Vehicle Count from Split Upstream Section Dictionary: {lane_vehicle_count_from_split_upstream_section}")
+                        AKIPrintString(f"Lane Vehicle Count from Split Upstream Section Dictionary: {lane_vehicle_count_from_split_upstream_section}")
 
                     ## COUNT NUMBER OF VEHICLES IN JUST UPSTREAM LANES OF THE SIGNAL
                     num_veh_from_section = AKIVehStateGetNbVehiclesSection(fromSection.value(), True) #Section which is connected to the signal
@@ -606,7 +613,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                                 lane_vehicle_count_from_section[number_lane_from_section] = 1
                     else:
                         lane_vehicle_count_from_section = {0: 0}
-                    ##AKIPrintString(f"Lane Vehicle Count from Signal Upstream Section Dictionary: {lane_vehicle_count_from_section}")
+                    AKIPrintString(f"Lane Vehicle Count from Signal Upstream Section Dictionary: {lane_vehicle_count_from_section}")
 
                     ## COUNT NUMBER OF VEHICLES IN JUST DOWNSTREAM LANES OF THE SIGNAL
                     num_veh_to_section = AKIVehStateGetNbVehiclesSection(toSection.value(), True) #Section which is connected to the signal in downstream
@@ -625,7 +632,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                                 lane_vehicle_count_to_section[number_lane_to_section] = 1
                     else:
                         lane_vehicle_count_to_section = {0: 0}
-                    ##AKIPrintString(f"Lane Vehicle Count from Signal Downstream Section Dictionary: {lane_vehicle_count_to_section}")
+                    AKIPrintString(f"Lane Vehicle Count from Signal Downstream Section Dictionary: {lane_vehicle_count_to_section}")
 
                     ## COUNT NUMBER OF VEHICLES IN DOWNSTREAM OF JUST DOWNSTREAM LANES OF THE SIGNAL
                     for downstream_split_section_id in section_downstream_dict[toSection.value()]:
@@ -649,7 +656,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                                     lane_vehicle_count_to_split_downstream_section[lane] = 0
                         else:
                             lane_vehicle_count_to_split_downstream_section = {0: 0}
-                    ##AKIPrintString(f"Lane Vehicle Count from Split Downstream Section Dictionary: {lane_vehicle_count_to_split_downstream_section}")
+                    AKIPrintString(f"Lane Vehicle Count from Split Downstream Section Dictionary: {lane_vehicle_count_to_split_downstream_section}")
 
                     first_lane_turn_origin = AKIInfNetGetTurningOriginFromLane(fromSection.value(), toSection.value())
                     last_lane_turn_origin = AKIInfNetGetTurningOriginToLane(fromSection.value(), toSection.value())
@@ -663,13 +670,13 @@ def pick_new_green_set(time1, timeSta, acycle):
                         lane_nums_turn_origin_sec.append(first_lane_turn_origin)
                     else:
                         lane_nums_turn_origin_sec = list(range(first_lane_turn_origin, last_lane_turn_origin+1))
-                    ###AKIPrintString(f'Lane numbers for this turn in origin: {lane_nums_turn_origin_sec}')
+                    #AKIPrintString(f'Lane numbers for this turn in origin: {lane_nums_turn_origin_sec}')
 
                     if first_lane_turn_destination == last_lane_turn_destination:
                         lane_nums_turn_dest_sec.append(first_lane_turn_destination)
                     else:
                         lane_nums_turn_dest_sec = list(range(first_lane_turn_destination, last_lane_turn_destination+1))
-                    ###AKIPrintString(f'Lane numbers for this turn in destination: {lane_nums_turn_dest_sec}')
+                    #AKIPrintString(f'Lane numbers for this turn in destination: {lane_nums_turn_dest_sec}')
 
                     # Sum the number of vehicles for each signal group in origin and destination sections
                     if lane_vehicle_count_from_section.get(0) == 0 and lane_vehicle_count_from_split_upstream_section.get(0) == 0:
@@ -686,8 +693,8 @@ def pick_new_green_set(time1, timeSta, acycle):
                         sum_veh_dest_split_downstream_section = sum(lane_vehicle_count_to_split_downstream_section.values()) #sum(lane_vehicle_count_to_split_downstream_section.get(lane, 0) for lane in lane_nums_turn_dest_sec)
                         sum_vehicles_destination = sum_veh_dest_signal_section + sum_veh_dest_split_downstream_section
 
-                    ##AKIPrintString(f'Sum of vehicles for signal group {signal_group} in origin: {sum_vehicles_origin}')
-                    ##AKIPrintString(f'Sum of vehicles for signal group {signal_group} in destination: {sum_vehicles_destination}')
+                    AKIPrintString(f'Sum of vehicles for signal group {signal_group} in origin: {sum_vehicles_origin}')
+                    AKIPrintString(f'Sum of vehicles for signal group {signal_group} in destination: {sum_vehicles_destination}')
 
                     # First assign section information to a variable using section id
                     from_section = model.getCatalog().find(fromSection.value())
@@ -713,7 +720,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                     section_info = AKIInfNetGetSectionANGInf(fromSection.value())
                     central_lane_length = section_info.length
                     from_section_lane_lengths = [central_lane_length if x==0 else x for x in from_section_lane_lengths]
-                    ##AKIPrintString(f"FROM SECTION LANE LENGTHS = {from_section_lane_lengths}")
+                    AKIPrintString(f"FROM SECTION LANE LENGTHS = {from_section_lane_lengths}")
                     
                     ## Now get the lane lengths for the split upstream lane
                     for lane in lanes_from_split_upstream:
@@ -724,7 +731,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                     split_upstream_section_lane_lengths = [split_section_central_lane_length if x==0 else x for x in split_upstream_section_lane_lengths]
                     while len(split_upstream_section_lane_lengths) < len(from_section_lane_lengths):
                         split_upstream_section_lane_lengths.append(0)
-                    ##AKIPrintString(f"SPLIT UPSTREAM LANE LENGTHS = {split_upstream_section_lane_lengths}")
+                    AKIPrintString(f"SPLIT UPSTREAM LANE LENGTHS = {split_upstream_section_lane_lengths}")
                     sum_origin_section_lengths = [from_section_lane_lengths[i] + split_upstream_section_lane_lengths[i] for i in range(len(from_section_lane_lengths))]
 
                     ## Get the lane lengths for downstream section
@@ -734,7 +741,7 @@ def pick_new_green_set(time1, timeSta, acycle):
                     to_section_info = AKIInfNetGetSectionANGInf(toSection.value())
                     to_section_central_lane_length = to_section_info.length
                     to_section_lane_lengths = [to_section_central_lane_length if x==0 else x for x in to_section_lane_lengths]
-                    ##AKIPrintString(f"TO SECTION LANE LENGTHS = {to_section_lane_lengths}")
+                    AKIPrintString(f"TO SECTION LANE LENGTHS = {to_section_lane_lengths}")
 
                     ## Get the lane lengths for split downstream section
                     for lane in lanes_from_split_downstream:
@@ -745,19 +752,21 @@ def pick_new_green_set(time1, timeSta, acycle):
                     split_downstream_section_lane_lengths = [downstream_split_section_central_lane_length if x==0 else x for x in split_downstream_section_lane_lengths]
                     while len(split_downstream_section_lane_lengths) < len(to_section_lane_lengths):
                         split_downstream_section_lane_lengths.append(0)
-                    ##AKIPrintString(f"SPLIT DOWNSTREAM LANE LENGTHS = {split_downstream_section_lane_lengths}")
+                    AKIPrintString(f"SPLIT DOWNSTREAM LANE LENGTHS = {split_downstream_section_lane_lengths}")
                     sum_dest_section_lengths = [to_section_lane_lengths[i] + split_downstream_section_lane_lengths[i] for i in range(len(to_section_lane_lengths))]
 
                     turn_lane_length_origin = [sum_origin_section_lengths[k - 1] for k in lane_nums_turn_origin_sec]
-                    ##AKIPrintString(f"TURN LANE LENGTHS ORIGIN= {turn_lane_length_origin}")
+                    AKIPrintString(f"TURN LANE LENGTHS ORIGIN= {turn_lane_length_origin}")
                     origin_lane_cap = sum(turn_lane_length_origin)/space_headway_jam
 
                     turn_lane_length_dest = sum(to_section_lane_lengths) + sum(split_downstream_section_lane_lengths) #sum_dest_section_lengths #[sum_dest_section_lengths[k - 1] for k in lane_nums_turn_dest_sec] ## For downstream entire section length is considered as we do not know where the vehicles will go
-                    ##AKIPrintString(f"TURN LANE LENGTHS DESTINATION= {turn_lane_length_dest}")
+                    AKIPrintString(f"TURN LANE LENGTHS DESTINATION= {turn_lane_length_dest}")
                     dest_lane_cap = turn_lane_length_dest/ space_headway_jam
 
-                    #PASCAL Pressure Calculation
-                    veh_num_diff = (sum_vehicles_origin/ origin_lane_cap) * (1 - (sum_vehicles_destination/ dest_lane_cap)) #* len(lane_nums_turn_origin_sec)
+                    # PASCAL
+                    veh_num_diff = sum_vehicles_origin * (sum_vehicles_origin/ origin_lane_cap) * (1 - (sum_vehicles_destination/ dest_lane_cap)) #* len(lane_nums_turn_origin_sec)
+
+                    AKIPrintString(f'QUEUE LENGTH TO CAPACITY = {veh_num_diff}')
 
                     signal_group_veh_diff[signal_group] = veh_num_diff
                     signal_group_name[signal_group] = sg_name
@@ -779,9 +788,9 @@ def pick_new_green_set(time1, timeSta, acycle):
         red_signal_groups = [sg for sg in all_signal_groups 
                              if sg != critical_signal_group and sg not in best_compli_combi]
 
-        #AKIPrintString(f'Critical signal group is: {critical_signal_group}')
-        #AKIPrintString(f'Final complimentary signal groups: {best_compli_combi}')
-        #AKIPrintString(f'Red signal groups: {red_signal_groups}')
+        AKIPrintString(f'Critical signal group is: {critical_signal_group}')
+        AKIPrintString(f'Final complimentary signal groups: {best_compli_combi}')
+        AKIPrintString(f'Red signal groups: {red_signal_groups}')
 
         critical_signal_group_num = [k for k,v in signal_group_name.items()
                                      if v == critical_signal_group]
@@ -794,13 +803,6 @@ def pick_new_green_set(time1, timeSta, acycle):
         new_green.update(critical_signal_group_num)
         new_green.update(best_compli_combi_num)
 
-        # current_green_set.clear()
-        # num_signal_groups = ECIGetNumberSignalGroups(junction_id)
-        # for i in range(1, num_signal_groups + 1):
-        #     state_sg = ECIGetCurrentStateofSignalGroup(junction_id, i)
-        #     if state_sg == 1:
-        #         current_green_set.add(i)
-
         # time_step logic
         new_ts = round(min((origin_veh_num[critical_signal_group_num[0]] * sat_flow 
                             / origin_sec_num_lanes[critical_signal_group_num[0]]), 
@@ -810,7 +812,7 @@ def pick_new_green_set(time1, timeSta, acycle):
         if new_ts < min_green:
             new_ts = min_green
         time_step = new_ts
-        #AKIPrintString(f'NEW TIME STEP = {time_step}')
+        AKIPrintString(f'NEW TIME STEP = {time_step}')
 
         # Update selection_pool
         # your original code:
@@ -823,7 +825,7 @@ def pick_new_green_set(time1, timeSta, acycle):
             if mov not in critical_signal_group_num and mov not in best_compli_combi_num:
                 new_pool.append(mov)
         selection_pool = new_pool
-        #AKIPrintString(f"NEW SELECTION POOL = {selection_pool}")
+        AKIPrintString(f"NEW SELECTION POOL = {selection_pool}")
 
     # return the final set
     return new_green
@@ -834,14 +836,14 @@ def pick_new_green_set(time1, timeSta, acycle):
 ##############################################################################
 def turn_movements_to_amber(to_turn_off, timeSta, time1, acycle):
     """Sets only those movements to amber; continuing movements remain green."""
-    #AKIPrintString(f"TURNING OFF => AMBER for {to_turn_off}")
+    AKIPrintString(f"TURNING OFF => AMBER for {to_turn_off}")
     ECIDisableEvents(junction_id)
     for sg_id in to_turn_off:
         ECIChangeSignalGroupState(junction_id, sg_id, amber_signal, timeSta, time1, acycle)
 
 def turn_movements_to_red(to_turn_off, timeSta, time1, acycle):
     """Sets only the old movements fully red; continuing remain green."""
-    #AKIPrintString(f"TURNING OFF => RED for {to_turn_off}")
+    AKIPrintString(f"TURNING OFF => RED for {to_turn_off}")
     ECIDisableEvents(junction_id)
     for sg_id in to_turn_off:
         ECIChangeSignalGroupState(junction_id, sg_id, red_signal, timeSta, time1, acycle)
@@ -849,16 +851,8 @@ def turn_movements_to_red(to_turn_off, timeSta, time1, acycle):
 def finalize_new_green_set(next_green, timeSta, time1, acycle):
     """Sets the *new* movements green; continuing were never turned off."""
     global current_green_set
-
-    # current_green_set.clear()
-    # num_signal_groups = ECIGetNumberSignalGroups(junction_id)
-    # for i in range(1, num_signal_groups + 1):
-    #     state_sg = ECIGetCurrentStateofSignalGroup(junction_id, i)
-    #     if state_sg == 1:
-    #         current_green_set.add(i)
-
     new_movements = next_green - current_green_set  # only truly new get turned green now
-    #AKIPrintString(f"TURNING NEW MOVEMENTS => GREEN for {new_movements}")
+    AKIPrintString(f"TURNING NEW MOVEMENTS => GREEN for {new_movements}")
     ECIDisableEvents(junction_id)
     for sg_id in new_movements:
         ECIChangeSignalGroupState(junction_id, sg_id, green_signal, timeSta, time1, acycle)

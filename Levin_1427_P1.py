@@ -17,7 +17,7 @@ amber_signal  = 2  # Amber signal code in Aimsun API
 
 junction_id = 1427
 
-max_cycle_time = 8   # In terms of "phase picks" (your original meaning)
+max_cycle_time = 12   # In terms of "phase picks" (your original meaning)
 cycle_counter = 0
 
 # For storing phase orders

@@ -13,72 +13,71 @@ green_signal = 1 # Green signal code in Aimsun API
 red_signal = 0 # Red signal code in Aimsun API
 amber_signal = 2 # Amber signal code in Aimsun API
 junction_id = 1978
-eta = 2.5
-cycle_time = 100   #This is the total green time and does not include the all red and amber
-min_green = 15
+eta = 2
+cycle_time = 120   #This is the total green time and does not include the all red and amber
+min_green = 20
 phase_pool = []
 signal_group_pool = []
 green_duration_phase = []
 section_upstream_dict = {
-    552: [658],
+    552: [658],   #509, 647,
     789: [1116],
     786: [1064],
-    572: [988],
-    471: [3741],
-    523: [3747],
+    572: [988],     #UP TO THIS CENTER INTERSECTION
+    471: [2285],
+    523: [574],
     516: [547],
-    499: [539],
+    499: [539],     #UP TO THIS SOUTHSIDE INTERSECTION
     1405: [1483],
     1422: [1461],
     1409: [1408],
-    1415: [1401],
+    1415: [1401],   #UP TO THIS NORTHSIDE INTERSECTION
     419: [437],
     979: [879],
-    772: [3750],
+    772: [3750],     #UP TO THIS EASTSIDE INTERSECTION
     1084: [626],
     1140: [2294],
     1107: [1120],
-    1102: [766]
+    1102: [766]     #uP TO THIS WESTSIDE INTERSECTION
 }
-
 section_downstream_dict = {
     778: [769],
     774: [557],
-    780: [3750],
-    776: [766],
+    780: [772],
+    776: [766],     #UP TO THIS CENTER INTERSECTION
     511: [509],
     502: [1644],
     2288: [517],
-    2291: [513],
+    2291: [513],    #UP TO THIS SOUTHSIDE INTERSECTION
     1432: [1402],
     1428: [1446],
     1430: [1443],
-    1436: [1449],
+    1436: [1449],   #UP TO NORTHSIDE INTERSECTION
     2297: [1529],
-    990: [2536],
-    431: [2300],
+    990: [988],
+    431: [2300],    #UP TO EASTSIDE INTERSECTION
     2303: [1143],
     1091: [614],
     1064: [786],
-    1092: [1137]
+    1092: [1137]    #UP TO WESTSIDE INTERSECTION
 }
 # Calling active model using scripting and later on it will be used to get the lane length
 model = GKSystem.getSystem().getActiveModel()
 
 def AAPILoad():
-    ##AKIPrintString("AAPILoad")
+    #AKIPrintString("AAPILoad")
     return 0
 
 def AAPIInit():
-    ##AKIPrintString("AAPIInit")
+    #AKIPrintString("AAPIInit")
     return 0
 
 def AAPISimulationReady():
-    ##AKIPrintString("AAPISimulationReady")
+    #AKIPrintString("AAPISimulationReady")
     return 0
 
 def AAPIManage(time1, timeSta, timeTrans, acycle):
-    ##AKIPrintString("AAPIManage")
+    #AKIPrintString("AAPIManage")
     return 0
 
 def AAPIPostManage(time1, timeSta, timeTrans, acycle):
@@ -117,7 +116,7 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
     # Check if the time interval for signal control decision is reached (say every 15 seconds)
     elif time1 == 0 or step_counter % ((time_step + amber_time + all_red_time) / acycle) == 0:
         if all(not sublist for sublist in phase_pool):
-            #AKIPrintString(f"JUNCTION ID = {junction_id}")
+            AKIPrintString(f"JUNCTION ID = {junction_id}")
             # Iterate over each junction to get its ID
             num_signal_groups = ECIGetNumberSignalGroups(junction_id)
             signal_group_veh_diff = {}
@@ -130,7 +129,7 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
 
             # Iterate over each signal group to get its turning movements
             for signal_group in range(1, num_signal_groups + 1):
-                #AKIPrintString(f"Signal group number = {signal_group}")
+                AKIPrintString(f"Signal group number = {signal_group}")
                 # Read the number of turnings for the signal group
                 num_turnings = ECIGetNumberTurningsofSignalGroup(junction_id, signal_group)
 
@@ -164,7 +163,7 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
                                         lane_vehicle_count_from_split_upstream_section[lane] = 0
                             else:
                                 lane_vehicle_count_from_split_upstream_section = {0: 0}
-                            #AKIPrintString(f"Lane Vehicle Count from Split Upstream Section Dictionary: {lane_vehicle_count_from_split_upstream_section}")
+                            AKIPrintString(f"Lane Vehicle Count from Split Upstream Section Dictionary: {lane_vehicle_count_from_split_upstream_section}")
 
                         ## COUNT NUMBER OF VEHICLES IN JUST UPSTREAM LANES OF THE SIGNAL
                         num_veh_from_section = AKIVehStateGetNbVehiclesSection(fromSection.value(), True) #Section which is connected to the signal
@@ -183,7 +182,7 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
                                     lane_vehicle_count_from_section[number_lane_from_section] = 1
                         else:
                             lane_vehicle_count_from_section = {0: 0}
-                        #AKIPrintString(f"Lane Vehicle Count from Signal Upstream Section Dictionary: {lane_vehicle_count_from_section}")
+                        AKIPrintString(f"Lane Vehicle Count from Signal Upstream Section Dictionary: {lane_vehicle_count_from_section}")
 
                         ## COUNT NUMBER OF VEHICLES IN JUST DOWNSTREAM LANES OF THE SIGNAL
                         num_veh_to_section = AKIVehStateGetNbVehiclesSection(toSection.value(), True) #Section which is connected to the signal in downstream
@@ -202,7 +201,7 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
                                     lane_vehicle_count_to_section[number_lane_to_section] = 1
                         else:
                             lane_vehicle_count_to_section = {0: 0}
-                        #AKIPrintString(f"Lane Vehicle Count from Signal Downstream Section Dictionary: {lane_vehicle_count_to_section}")
+                        AKIPrintString(f"Lane Vehicle Count from Signal Downstream Section Dictionary: {lane_vehicle_count_to_section}")
 
                         ## COUNT NUMBER OF VEHICLES IN DOWNSTREAM OF JUST DOWNSTREAM LANES OF THE SIGNAL
                         for downstream_split_section_id in section_downstream_dict[toSection.value()]:
@@ -226,7 +225,7 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
                                         lane_vehicle_count_to_split_downstream_section[lane] = 0
                             else:
                                 lane_vehicle_count_to_split_downstream_section = {0: 0}
-                        #AKIPrintString(f"Lane Vehicle Count from Split Downstream Section Dictionary: {lane_vehicle_count_to_split_downstream_section}")
+                        AKIPrintString(f"Lane Vehicle Count from Split Downstream Section Dictionary: {lane_vehicle_count_to_split_downstream_section}")
 
                         first_lane_turn_origin = AKIInfNetGetTurningOriginFromLane(fromSection.value(), toSection.value())
                         last_lane_turn_origin = AKIInfNetGetTurningOriginToLane(fromSection.value(), toSection.value())
@@ -240,13 +239,13 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
                             lane_nums_turn_origin_sec.append(first_lane_turn_origin)
                         else:
                             lane_nums_turn_origin_sec = list(range(first_lane_turn_origin, last_lane_turn_origin+1))
-                        ##AKIPrintString(f'Lane numbers for this turn in origin: {lane_nums_turn_origin_sec}')
+                        #AKIPrintString(f'Lane numbers for this turn in origin: {lane_nums_turn_origin_sec}')
 
                         if first_lane_turn_destination == last_lane_turn_destination:
                             lane_nums_turn_dest_sec.append(first_lane_turn_destination)
                         else:
                             lane_nums_turn_dest_sec = list(range(first_lane_turn_destination, last_lane_turn_destination+1))
-                        ##AKIPrintString(f'Lane numbers for this turn in destination: {lane_nums_turn_dest_sec}')
+                        #AKIPrintString(f'Lane numbers for this turn in destination: {lane_nums_turn_dest_sec}')
 
                         # Sum the number of vehicles for each signal group in origin and destination sections
                         if lane_vehicle_count_from_section.get(0) == 0 and lane_vehicle_count_from_split_upstream_section.get(0) == 0:
@@ -259,15 +258,15 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
                         if lane_vehicle_count_to_section.get(0) == 0 and lane_vehicle_count_to_split_downstream_section.get(0) == 0:
                             sum_vehicles_destination = 0
                         else:
-                            sum_veh_dest_signal_section = sum(lane_vehicle_count_to_section.values()) #sum(lane_vehicle_count_to_section.get(lane, 0) for lane in lane_nums_turn_dest_sec)
-                            sum_veh_dest_split_downstream_section = sum(lane_vehicle_count_to_split_downstream_section.values()) #sum(lane_vehicle_count_to_split_downstream_section.get(lane, 0) for lane in lane_nums_turn_dest_sec)
+                            sum_veh_dest_signal_section = sum(lane_vehicle_count_to_section.get(lane, 0) for lane in lane_nums_turn_dest_sec)
+                            sum_veh_dest_split_downstream_section = sum(lane_vehicle_count_to_split_downstream_section.get(lane, 0) for lane in lane_nums_turn_dest_sec)
                             sum_vehicles_destination = sum_veh_dest_signal_section + sum_veh_dest_split_downstream_section
 
-                        #AKIPrintString(f'Sum of vehicles for signal group {signal_group} in origin: {sum_vehicles_origin}')
-                        #AKIPrintString(f'Sum of vehicles for signal group {signal_group} in destination: {sum_vehicles_destination}')
+                        AKIPrintString(f'Sum of vehicles for signal group {signal_group} in origin: {sum_vehicles_origin}')
+                        AKIPrintString(f'Sum of vehicles for signal group {signal_group} in destination: {sum_vehicles_destination}')
 
                         # max pressure control
-                        veh_num_diff = (sum_vehicles_origin - sum_vehicles_destination) #* len(lane_nums_turn_origin_sec)
+                        veh_num_diff = (sum_vehicles_origin - sum_vehicles_destination) * len(lane_nums_turn_origin_sec)
 
                         signal_group_veh_diff[signal_group] = veh_num_diff
                         signal_group_name[signal_group] = sg_name
@@ -288,23 +287,23 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
                     num_lane_phase = []
                     for sg_index in range(num_phase_signal_groups):
                         signal_group_id = ECIGetSignalGroupPhaseofJunction(junction_id, phase, sg_index, time1)
-                        #AKIPrintString(f"SIGNAL GROUP POOL ID= {signal_group_id}")
+                        AKIPrintString(f"SIGNAL GROUP POOL ID= {signal_group_id}")
                         weight_list.append(signal_group_veh_diff[signal_group_id])
-                        #AKIPrintString(f"WEIGHT FOR SIGNAL GROUP {signal_group_id} = {weight_list}")
+                        AKIPrintString(f"WEIGHT FOR SIGNAL GROUP {signal_group_id} = {weight_list}")
                         num_lane_phase.append(origin_sec_num_lanes[signal_group_id])
                         signal_group_pool.append(signal_group_id)
-                        #AKIPrintString(f"SIGNAL GROUP POOL = {signal_group_pool}")
+                        AKIPrintString(f"SIGNAL GROUP POOL = {signal_group_pool}")
                     #total_num_lanes = sum(num_lane_phase)
                     pressure_phase = sum(weight_list) #* total_num_lanes * ((1800/3600) * time_step / 1000)
                     pressure_for_phase[phase] = pressure_phase
-                    #AKIPrintString(f"Pressure for {phase} = {pressure_phase}")
+                    AKIPrintString(f"Pressure for {phase} = {pressure_phase}")
                     pressure_phase_list.append(pressure_phase)
                     phase_pool.append(signal_group_pool)
-                    #AKIPrintString(f"PHASE POOL = {phase_pool}")
+                    AKIPrintString(f"PHASE POOL = {phase_pool}")
 
-            pressure_exp_value = [np.exp(np.clip(eta * phase_pressure, -700, 700)) for phase_pressure in pressure_phase_list]
+            pressure_exp_value = [math.exp(eta * phase_pressure) for phase_pressure in pressure_phase_list]
             sum_exp_value = sum(pressure_exp_value)
-            #AKIPrintString(f"SUM PRESSURE = {sum_exp_value}")
+            AKIPrintString(f"SUM PRESSURE = {sum_exp_value}")
 
             green_duration_phase = []
             min_green_list = []
@@ -318,7 +317,7 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
 
             green_duration_phase = [x+min_green for x in green_duration_phase]
 
-            #AKIPrintString(f'Green Duration with Min Green for Phases: {green_duration_phase}')
+            AKIPrintString(f'Green Duration with Min Green for Phases: {green_duration_phase}')
 
             if sum(green_duration_phase) > cycle_time:
                 highest_element = max(green_duration_phase)
@@ -328,7 +327,7 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
                 # Adjust the highest element
                 green_duration_phase[highest_element_index] -= reduction_amount
 
-            #AKIPrintString(f'Final Green durations are: {green_duration_phase}')
+            AKIPrintString(f'Final Green durations are: {green_duration_phase}')
 
             ECIDisableEvents(junction_id)
             ECIIsEventsEnabled(junction_id)
@@ -348,9 +347,9 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
             phase_pool = phase_pool[1:]
             green_duration_phase = green_duration_phase[1:]
         else:
-            #AKIPrintString(f"JUNCTION ID = {junction_id}")
-            #AKIPrintString(f"PHASE POOL UPDATED = {phase_pool}")
-            #AKIPrintString(f"GREEN DURATION LIST UPDATED= {green_duration_phase}")
+            AKIPrintString(f"JUNCTION ID = {junction_id}")
+            AKIPrintString(f"PHASE POOL UPDATED = {phase_pool}")
+            AKIPrintString(f"GREEN DURATION LIST UPDATED= {green_duration_phase}")
             all_signal_groups_id = []
             num_signal_groups = ECIGetNumberSignalGroups(junction_id)
             for signal_group in range (1, num_signal_groups + 1):
@@ -373,17 +372,17 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
             phase_pool = phase_pool[1:]
             green_duration_phase = green_duration_phase[1:]
         step_counter = 0
-        #AKIPrintString( "____________________________________________________________________________________________________________________________________________________" )
+        AKIPrintString( "____________________________________________________________________________________________________________________________________________________" )
     return 0
 
 def AAPIFinish():
-	##AKIPrintString( "AAPIFinish" )
+	#AKIPrintString( "AAPIFinish" )
 	return 0
 
 def AAPIUnLoad():
-	##AKIPrintString( "AAPIUnLoad" )
+	#AKIPrintString( "AAPIUnLoad" )
 	return 0
 	
 def AAPIPreRouteChoiceCalculation(time1, timeSta):
-	##AKIPrintString( "AAPIPreRouteChoiceCalculation" )
+	#AKIPrintString( "AAPIPreRouteChoiceCalculation" )
 	return 0
