@@ -181,7 +181,7 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
     if signal_state == "GREEN":
         # If we've been green for at least 'time_step' seconds, 
         # see if we want to pick new movements
-        if time_in_state >= time_step:
+        if time_in_state >= time_step or len(current_green_set) == 0:
             next_green_set = pick_new_green_set(time1, timeSta, acycle)
 
             # Find which movements are continuing vs turning off
@@ -189,7 +189,15 @@ def AAPIPostManage(time1, timeSta, timeTrans, acycle):
             movements_to_turn_off = current_green_set - continuing
 
             if len(movements_to_turn_off) == 0:
-                # If there's no difference, we keep the same set => just reset timer
+                if len(current_green_set) == 0 and len(next_green_set) > 0:
+                    # First decision: no previous controller state exists yet.
+                    apply_initial_green_set(next_green_set, timeSta, time1, acycle)
+                    current_green_set.clear()
+                    current_green_set.update(next_green_set)
+                elif next_green_set != current_green_set:
+                    finalize_new_green_set(next_green_set, timeSta, time1, acycle)
+                    current_green_set.clear()
+                    current_green_set.update(next_green_set)
                 time_in_state = 0
             else:
                 # We do have some to turn off => set them to AMBER
@@ -834,6 +842,17 @@ def pick_new_green_set(time1, timeSta, acycle):
 # HELPER FUNCTIONS FOR THE STATE MACHINE
 # (Amber, Red, Finalizing new greens)
 ##############################################################################
+def apply_initial_green_set(green_set, timeSta, time1, acycle):
+    """Applies the first selected green set and makes every other group red."""
+    AKIPrintString(f"INITIAL GREEN SET => GREEN for {green_set}")
+    ECIDisableEvents(junction_id)
+    num_signal_groups = ECIGetNumberSignalGroups(junction_id)
+    for sg_id in range(1, num_signal_groups + 1):
+        if sg_id in green_set:
+            ECIChangeSignalGroupState(junction_id, sg_id, green_signal, timeSta, time1, acycle)
+        else:
+            ECIChangeSignalGroupState(junction_id, sg_id, red_signal, timeSta, time1, acycle)
+
 def turn_movements_to_amber(to_turn_off, timeSta, time1, acycle):
     """Sets only those movements to amber; continuing movements remain green."""
     AKIPrintString(f"TURNING OFF => AMBER for {to_turn_off}")
